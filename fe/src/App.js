@@ -1,8 +1,9 @@
-// Update fe/src/App.js to include new routes
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+
+import ChatBox from "./components/ChatBox";
 
 // Auth components
 import Login from './components/Auth/Login';
@@ -25,6 +26,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -55,68 +57,174 @@ function App() {
     await authService.logout();
     setIsLoggedIn(false);
     setCurrentUser(null);
+    setIsChatOpen(false); // Close chat when logout
   };
 
+  // Chat handlers
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+  };
+
+  // Protected Route Component
+  const ProtectedRoute = ({ children, requireAuth = true, requireDoctor = false, requirePatient = false }) => {
+    if (!requireAuth) return children;
+    
+    if (!isLoggedIn) return <Navigate to="/" />;
+    
+    if (requireDoctor && !currentUser?.is_doctor) return <Navigate to="/dashboard" />;
+    if (requirePatient && !currentUser?.is_patient) return <Navigate to="/dashboard" />;
+    
+    return children;
+  };
+
+  // Dashboard Wrapper Component
+  const DashboardWrapper = ({ content }) => (
+    <Dashboard 
+      user={currentUser} 
+      onLogout={handleLogout}
+      content={content}
+    />
+  );
+
   if (loading) {
-    return <div className="loading-spinner">Loading...</div>;
+    return (
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <div className="loading-text">Loading...</div>
+      </div>
+    );
   }
 
   return (
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Auth Routes */}
-            <Route path="/" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />} />
-            <Route path="/register" element={<Register />} />
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Auth Routes */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute requireAuth={false}>
+                {!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <Register />
+              </ProtectedRoute>
+            } 
+          />
 
-            {/* Dashboard */}
-            <Route
-                path="/dashboard"
-                element={isLoggedIn ? <Dashboard user={currentUser} onLogout={handleLogout} /> : <Navigate to="/" />}
-            />
+          {/* Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardWrapper />
+              </ProtectedRoute>
+            }
+          />
 
-            {/* Doctor Routes */}
-            <Route
-                path="/doctor/create-schedule"
-                element={isLoggedIn && currentUser?.is_doctor ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<CreateSchedule />} /> :
-                    <Navigate to="/" />}
-            />
-            <Route
-                path="/doctor/schedules"
-                element={isLoggedIn && currentUser?.is_doctor ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<DoctorScheduleList />} /> :
-                    <Navigate to="/" />}
-            />
-            <Route
-                path="/doctor/appointments"
-                element={isLoggedIn && currentUser?.is_doctor ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<DoctorAppointments />} /> :
-                    <Navigate to="/" />}
-            />
+          {/* Doctor Routes */}
+          <Route
+            path="/doctor/create-schedule"
+            element={
+              <ProtectedRoute requireDoctor={true}>
+                <DashboardWrapper content={<CreateSchedule />} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/doctor/schedules"
+            element={
+              <ProtectedRoute requireDoctor={true}>
+                <DashboardWrapper content={<DoctorScheduleList />} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/doctor/appointments"
+            element={
+              <ProtectedRoute requireDoctor={true}>
+                <DashboardWrapper content={<DoctorAppointments />} />
+              </ProtectedRoute>
+            }
+          />
 
-            {/* Patient Routes */}
-            <Route
-                path="/find-doctors"
-                element={isLoggedIn && currentUser?.is_patient ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<DoctorList />} /> :
-                    <Navigate to="/" />}
-            />
-            <Route
-                path="/book-appointment/:doctorId"
-                element={isLoggedIn && currentUser?.is_patient ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<BookAppointment />} /> :
-                    <Navigate to="/" />}
-            />
-            <Route
-                path="/my-appointments"
-                element={isLoggedIn && currentUser?.is_patient ?
-                    <Dashboard user={currentUser} onLogout={handleLogout} content={<PatientAppointments />} /> :
-                    <Navigate to="/" />}
-            />
-          </Routes>
-        </div>
-      </Router>
+          {/* Patient Routes */}
+          <Route
+            path="/find-doctors"
+            element={
+              <ProtectedRoute requirePatient={true}>
+                <DashboardWrapper content={<DoctorList />} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/book-appointment/:doctorId"
+            element={
+              <ProtectedRoute requirePatient={true}>
+                <DashboardWrapper content={<BookAppointment />} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-appointments"
+            element={
+              <ProtectedRoute requirePatient={true}>
+                <DashboardWrapper content={<PatientAppointments />} />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+
+        {/* AI Chat Component - Only show when logged in */}
+        {isLoggedIn && (
+          <>
+            {/* Chat Toggle Button - Sử dụng emoji thay vì FontAwesome */}
+            <button 
+              className={`chat-toggle-btn ${isChatOpen ? 'active' : ''}`}
+              onClick={toggleChat}
+              aria-label="Toggle AI Chat"
+              style={{
+                position: 'fixed',
+                bottom: '24px',
+                right: '24px',
+                zIndex: 1000,
+                border: 'none',
+                outline: 'none'
+              }}
+            >
+              {/* Sử dụng emoji hoặc text thay vì FontAwesome icons */}
+              {isChatOpen ? '✕' : '💬'}
+            </button>
+
+            {/* Chat Container */}
+            <div 
+              className={`chat-container ${isChatOpen ? 'open' : 'closed'}`}
+              style={{
+                position: 'fixed',
+                bottom: '100px',
+                right: '24px',
+                zIndex: 999
+              }}
+            >
+              <ChatBox 
+                isOpen={isChatOpen}
+                onClose={closeChat}
+                user={currentUser}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </Router>
   );
 }
 

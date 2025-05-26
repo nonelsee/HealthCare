@@ -1,8 +1,10 @@
 # BE/appointments/urls.py
 from django.urls import path
 from . import views
+from .view_ai import GoogleChatAPIView
 
 urlpatterns = [
+    path('chat-google/', GoogleChatAPIView.as_view(), name='chat-google-ai'),  # Thêm dòng này
     # Doctor schedule management
     path('schedules/', views.DoctorScheduleListCreateView.as_view(), name='schedule-list-create'),
     path('schedules/<int:pk>/', views.DoctorScheduleDetailView.as_view(), name='schedule-detail'),
