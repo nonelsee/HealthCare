@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 import google.generativeai as genai
 import os
 
 class GoogleChatAPIView(APIView):
+    permission_classes = [AllowAny]  
     def post(self, request):
         user_message = request.data.get("message", "")
         if not user_message:

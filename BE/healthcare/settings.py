@@ -147,3 +147,54 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
 
 # Add this to your settings.py if it's not already there
 AUTH_USER_MODEL = 'users.User'
+
+# Google AI API Key
+GOOGLE_API_KEY = "AIzaSyCkZLrr0x0jzTPLvTYU262E-E1zzoNULS4"
+
+# Debug print (remove in production)
+print("=" * 50)
+print("ENVIRONMENT VARIABLES DEBUG:")
+print(f"GOOGLE_API_KEY exists: {bool(GOOGLE_API_KEY)}")
+if GOOGLE_API_KEY:
+    print(f"API Key preview: {GOOGLE_API_KEY[:20]}...")
+print(f"DEBUG: {DEBUG}")
+print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'Not set')}")
+print("=" * 50)
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'appointments': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

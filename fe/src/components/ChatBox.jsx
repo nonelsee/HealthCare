@@ -15,7 +15,7 @@ const ChatBox = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat-google/", {
+      const res = await fetch("http://localhost:8000/api/appointments/chat-google/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input })
